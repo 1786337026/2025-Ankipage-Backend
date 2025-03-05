@@ -15,6 +15,52 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/anki/{userid}/": {
+            "get": {
+                "description": "Get Anki Notes for user to read.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notes"
+                ],
+                "summary": "Get Anki Notes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Memory level (Anki score)",
+                        "name": "memory",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success response with the updated note",
+                        "schema": {
+                            "$ref": "#/definitions/models.Note"
+                        }
+                    },
+                    "404": {
+                        "description": "Error response if note not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Authenticate a user with username and password, return a JWT token",
@@ -386,6 +432,9 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
+                                "email": {
+                                    "type": "string"
+                                },
                                 "password": {
                                     "type": "string"
                                 },
@@ -439,6 +488,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedAt": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 },
                 "userID": {

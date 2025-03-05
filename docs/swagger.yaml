@@ -11,12 +11,45 @@ definitions:
         type: string
       updatedAt:
         type: string
+      url:
+        type: string
       userID:
         type: integer
     type: object
 info:
   contact: {}
 paths:
+  /anki/{userid}/:
+    get:
+      consumes:
+      - application/json
+      description: Get Anki Notes for user to read.
+      parameters:
+      - description: User ID
+        in: path
+        name: userid
+        required: true
+        type: integer
+      - description: Memory level (Anki score)
+        in: path
+        name: memory
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success response with the updated note
+          schema:
+            $ref: '#/definitions/models.Note'
+        "404":
+          description: Error response if note not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Anki Notes
+      tags:
+      - Notes
   /login:
     post:
       consumes:
@@ -265,6 +298,8 @@ paths:
         required: true
         schema:
           properties:
+            email:
+              type: string
             password:
               type: string
             username:

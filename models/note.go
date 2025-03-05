@@ -8,6 +8,7 @@ import (
 type Note struct {
 	ID        int       `gorm:"primaryKey"`
 	UserID    int       `gorm:"index"`
+	Url       string    `gorm:"size:255;not null"`
 	Title     string    `gorm:"size:255;not null"`
 	Content   string    `gorm:"type:text"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`

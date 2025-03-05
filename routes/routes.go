@@ -20,6 +20,7 @@ func SetupRouter() *gin.Engine {
 	authorized.POST("/createnote/:userid", controllers.CreateNote)
 	authorized.PUT("/updatenote/:id", controllers.UpdateNote)
 	authorized.DELETE("/deletenote/:id", controllers.DeleteNote)
-
+	authorized.GET("/anki/:id", controllers.Anki)
+	authorized.GET("/ankipush/:id/:userid/:memory", controllers.AnkiPush)
 	return r
 }

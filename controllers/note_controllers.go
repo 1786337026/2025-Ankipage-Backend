@@ -1,19 +1,13 @@
 package controllers
 
 import (
-	"Ankipage/db"
 	"Ankipage/models"
+	"Ankipage/services"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"time"
 )
-
-type CrtNote struct {
-	title   string `json:"title" binding:"required"`
-	content string `json:"content" binding:"required"`
-}
 
 // @Summary Create a new note
 // @Description Create a note for a user
@@ -31,19 +25,29 @@ func CreateNote(c *gin.Context) {
 	UserID, _ := strconv.Atoi(userID)
 	var note models.Note
 	if err := c.BindJSON(&note); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error: Invalid request body   ": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":                           1,
+			"error: Invalid request body   ": err.Error(),
+		})
 		return
 	}
-	note.ID = c.GetInt("user_id")
-	note.UserID = UserID
-	note.CreatedAt = time.Now()
-	note.UpdatedAt = time.Now()
-	// 保存到数据库
-	if err := note.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save note"})
+
+	noteId, err := services.CreateNote(c.GetInt("id"), UserID, note.Content, note.Title, note.Url)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  1,
+			"error": err.Error(),
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Note created successfully", "note_id": note.ID})
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "Note created successfully",
+		"data": gin.H{
+			"noteID": noteId,
+		},
+	})
 }
 
 // @Summary List recent notes
@@ -60,13 +64,21 @@ func ListRecentNotes(c *gin.Context) {
 	limit := 4
 
 	// 获取最近的笔记
-	notes, err := models.GetRecentNotes(userID, limit)
+
+	notes, err := services.RecentNotes(userID, limit)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch notes"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  1,
+			"error": err.Error(),
+		})
 		return
 	}
-
-	c.JSON(http.StatusOK, notes)
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "Recent notes successfully",
+		"data":    notes,
+	})
 }
 
 // @Summary Get a specific note
@@ -82,16 +94,25 @@ func GetNote(c *gin.Context) {
 	id := c.Param("id")
 	noteID, err := strconv.Atoi(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Invalid note id"})
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":  1,
+			"error": "Invalid note id",
+		})
 	}
 	// 获取笔记
-	note, err := models.GetNoteByID(noteID)
+
+	note, err := services.GetNote(noteID)
+
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, note)
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "Get Note successfully",
+		"data":    note,
+	})
 }
 
 // @Summary Get all notes
@@ -108,13 +129,22 @@ func GetNotes(c *gin.Context) {
 	UserID, _ := strconv.Atoi(userID)
 	fmt.Println(UserID)
 	// 获取笔记
-	note, err := models.GetAllNotes(UserID)
+
+	note, err := services.GetAllNote(UserID)
+
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":  1,
+			"error": err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, note)
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "Get Notes successfully",
+		"data":    note,
+	})
 }
 
 // @Summary Update a note
@@ -131,27 +161,37 @@ func GetNotes(c *gin.Context) {
 // @Router /notes/{id} [put]
 func UpdateNote(c *gin.Context) {
 	id := c.Param("id")
+	Id, err := strconv.Atoi(id)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"code":  1,
+			"error": "Invalid ID",
+		})
+		return
+	}
 	var note models.Note
-
-	// 查找原始笔记
-	if err := db.DB.First(&note, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Note not found"})
-		return
-	}
-
-	// 更新笔记内容
 	if err := c.BindJSON(&note); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  1,
+			"error": "Invalid request body",
+		})
 		return
 	}
-	note.UpdatedAt = time.Now()
+	// 查找原始笔记
 
-	if err := note.Update(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update note"})
+	err = services.UpdateNote(Id, note.Content)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  1,
+			"error": err.Error(),
+		})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Note updated successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "Note updated successfully",
+	})
 }
 
 // @Summary Delete a note
@@ -168,14 +208,26 @@ func DeleteNote(c *gin.Context) {
 	id := c.Param("id")
 	noteID, err := strconv.Atoi(id)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Invalid ID"})
+		c.JSON(400, gin.H{
+			"code":  1,
+			"error": "Invalid ID",
+		})
 		return
 	}
 	// 删除笔记
-	if err := models.DeleteNoteByID(noteID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete note"})
+
+	err = services.DeleteNote(noteID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  1,
+			"error": "Failed to delete note",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Note deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "Note deleted successfully",
+	})
 }
